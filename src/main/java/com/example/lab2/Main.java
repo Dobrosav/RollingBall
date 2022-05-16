@@ -202,26 +202,22 @@ public class Main extends Application {
 
 		this.root.getChildren ( ).add ( camera );
 		scene.setCamera ( camera );
-		
+
 		Material ballMaterial = new PhongMaterial ( Color.RED );
-		Translate ballPosition = new Translate (
-				- ( Main.PODIUM_WIDTH / 2 - 2 * Main.BALL_RADIUS ),
-				- ( Main.BALL_RADIUS + Main.PODIUM_HEIGHT / 2 ),
-				Main.PODIUM_DEPTH / 2 - 2 * Main.BALL_RADIUS
-		);
+
 		this.ballPosition = new Translate(-900.0, -55.0, 900.0);
 		(this.birdViewCamera = new PerspectiveCamera(true)).setFarClip(CAMERA_FAR_CLIP);
 		final Translate birdViewCameraPosition = new Translate(0.0, -2555.0, 0.0);
 		this.birdViewCamera.getTransforms().addAll(birdViewCameraPosition, ballPosition, new Rotate(-90.0, Rotate.X_AXIS));
 
 		this.ball = new Ball ( Main.BALL_RADIUS, ballMaterial, ballPosition );
-		
+
 		double x = ( Main.PODIUM_WIDTH / 2 - 2 * Main.HOLE_RADIUS );
 		double z = - ( Main.PODIUM_DEPTH / 2 - 2 * Main.HOLE_RADIUS );
-		
+
 		Translate holePosition = new Translate ( x, -30, z );
 		Material holeMaterial = new PhongMaterial ( Color.YELLOW );
-		
+
 		this.hole = new Hole (
 				Main.HOLE_RADIUS,
 				Main.HOLE_HEIGHT,
