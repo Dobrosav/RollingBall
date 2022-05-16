@@ -5,6 +5,10 @@ import com.example.lab2.arena.Ball;
 import com.example.lab2.arena.Hole;
 import com.example.lab2.camera.PanAndZoomCamera;
 import com.example.lab2.timer.Timer;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.*;
 import javafx.scene.image.Image;
@@ -17,13 +21,14 @@ import javafx.scene.paint.ImagePattern;
 import javafx.scene.paint.Material;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
-import javafx.scene.shape.Circle;
+
 import javafx.scene.shape.Cylinder;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import javafx.util.Duration;
 import java.util.Arrays;
 
 public class Main extends Application {
@@ -62,7 +67,22 @@ public class Main extends Application {
 	private boolean isLightOn;
 	private PhongMaterial reflectorMaterial;
 	private Cylinder obstacles[];
+	private Cylinder[] coins;
+	private void addCoins(){
+		PhongMaterial coinMaterial = new PhongMaterial(Color.GOLD);
+		this.coins = new Cylinder[4];
+		for (int i = 0; i < this.coins.length; ++i) {
+			(this.coins[i] = new Cylinder(50.0, 5.0)).setMaterial(coinMaterial);
+			final Rotate rotateY = new Rotate(0.0, Rotate.Y_AXIS);
+			final Translate translate = new Translate(0.0, -5.0, 0.0);
+			this.coins[i].getTransforms().addAll(translate, new Rotate(90.0 * i, Rotate.Y_AXIS), new Translate(500.0, 0.0, 0.0), new Translate(0.0, -55.0, 0.0), rotateY, new Rotate(90.0, Rotate.Z_AXIS));
+			Timeline timeline = new Timeline(new KeyFrame(Duration.ZERO, new KeyValue(rotateY.angleProperty(), 0, Interpolator.LINEAR), new KeyValue(translate.yProperty(), -5.0)), new KeyFrame(Duration.seconds(3.0), new KeyValue(rotateY.angleProperty(), 180, Interpolator.LINEAR), new KeyValue(translate.yProperty(), -100.0)), new KeyFrame(Duration.seconds(6.0), new KeyValue(rotateY.angleProperty(), 360, Interpolator.LINEAR), new KeyValue(translate.yProperty(), -5.0)));
+			timeline.setCycleCount(-1);
+			timeline.play();
+		}
+		this.arena.getChildren().addAll(this.coins);
 
+	}
 	private void addReflector() {
 		this.reflector = new Group();
 		this.reflectorMaterial = new PhongMaterial(Color.GRAY);
@@ -152,6 +172,7 @@ public class Main extends Application {
 		this.root.getChildren ( ).add ( this.arena );
 		addReflector();
 		addObstacles();
+		addCoins();
 		Timer timer = new Timer (
 				deltaSeconds -> {
 					this.arena.update(ARENA_DAMP);
