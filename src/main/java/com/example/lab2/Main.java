@@ -4,6 +4,7 @@ import com.example.lab2.arena.Arena;
 import com.example.lab2.arena.Ball;
 import com.example.lab2.arena.Hole;
 import com.example.lab2.camera.PanAndZoomCamera;
+import com.example.lab2.hub.OrientationMap;
 import com.example.lab2.timer.Timer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -22,7 +23,10 @@ import javafx.scene.paint.Material;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Cylinder;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
@@ -53,7 +57,8 @@ public class Main extends Application {
 	private static final int    NUMBER_OF_HOLES = 4;
 	private static final double HOLE_RADIUS     = 2 * Main.BALL_RADIUS;
 	private static final double HOLE_HEIGHT     = PODIUM_HEIGHT;
-	
+	private static final double LIFE_RADIUS=5;
+
 	private Group root;
 	private Group hubGroup;
 	private Ball  ball;
@@ -68,6 +73,31 @@ public class Main extends Application {
 	private PhongMaterial reflectorMaterial;
 	private Cylinder obstacles[];
 	private Cylinder[] coins;
+	private Box[] fences;
+	private int points;
+	private Circle[] lives;
+	private Group hubRoot;
+	private Text pointsText;
+	OrientationMap orientationMap;
+	private SubScene createHUBDisplay() {
+		this.hubRoot = new Group();
+		final SubScene subScene = new SubScene(this.hubRoot, 800.0, 800.0);
+		this.lives = new Circle[5];
+		for (int i = 0; i < this.lives.length; ++i) {
+			this.lives[i] = new Circle(Main.LIFE_RADIUS, Color.RED);
+			this.lives[i].getTransforms().add(new Translate(2.0 * Main.LIFE_RADIUS + 3 * i * Main.LIFE_RADIUS, 2.0 * Main.LIFE_RADIUS));
+		}
+		this.hubRoot.getChildren().addAll(this.lives);
+		(this.pointsText = new Text(Integer.toString(this.points))).setFill(Color.RED);
+		this.pointsText.setFont(new Font(26.0));
+		this.pointsText.getTransforms().add(new Translate(800.0 - 3.0 * this.pointsText.getLayoutBounds().getWidth(), this.pointsText.getLayoutBounds().getHeight()));
+		this.hubRoot.getChildren().add(this.pointsText);
+		this.orientationMap = new OrientationMap(160.0, 160.0);
+		this.orientationMap.getTransforms().addAll(new Translate(0.0, 640.0), new Translate(80.0, 80.0));
+		this.hubRoot.getChildren().add(this.orientationMap);
+		return subScene;
+	}
+
 	private void addCoins(){
 		PhongMaterial coinMaterial = new PhongMaterial(Color.GOLD);
 		this.coins = new Cylinder[4];
@@ -163,12 +193,17 @@ public class Main extends Application {
 				holeMaterial,
 				holePosition
 		);
-		
+		this.fences = new Box[4];
+		final PhongMaterial fenceMaterial = new PhongMaterial(Color.BROWN);
+		for (int i = 0; i < this.fences.length; ++i) {
+			(this.fences[i] = new Box(10.0, 100.0, 1000.0)).setMaterial(fenceMaterial);
+			this.fences[i].getTransforms().addAll(new Rotate(i * 90.0, Rotate.Y_AXIS), new Translate(990.0, -55.0, 0.0));
+		}
 		this.arena = new Arena ( );
 		this.arena.getChildren ( ).add ( podium );
 		this.arena.getChildren ( ).add ( this.ball );
 		this.arena.getChildren ( ).addAll ( this.hole );
-		
+		this.arena.getChildren().addAll(fences);
 		this.root.getChildren ( ).add ( this.arena );
 		addReflector();
 		addObstacles();
@@ -193,7 +228,7 @@ public class Main extends Application {
 						);
 						
 						boolean isInHole = this.hole.handleCollision ( this.ball );
-						
+						Arrays.stream(this.fences).forEach(fence -> ball.handleCoinCollision(fence));
 						if ( outOfArena || isInHole ) {
 							this.arena.getChildren ( ).remove ( this.ball );
 							Main.this.ball = null;
@@ -220,6 +255,18 @@ public class Main extends Application {
 			}
 			else if (event.getCode().equals(KeyCode.DIGIT2) || event.getCode().equals(KeyCode.NUMPAD2)) {
 				this.scene.setCamera(this.birdViewCamera);
+			}
+			else if (event.getCode().equals(KeyCode.DIGIT0) || event.getCode().equals(KeyCode.NUMPAD0)) {
+				if (this.isLightOn) {
+					this.reflectorMaterial.setSelfIlluminationMap(null);
+					this.reflector.getChildren().remove(this.pointLight);
+				}
+				else {
+					final Image selfIllumination = new Image(this.getClass().getClassLoader().getResourceAsStream("selfIlluminations.png"));
+					this.reflectorMaterial.setSelfIlluminationMap(selfIllumination);
+					this.reflector.getChildren().add(this.pointLight);
+				}
+				this.isLightOn = !this.isLightOn;
 			}
 		}
 	}

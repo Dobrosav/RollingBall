@@ -1,8 +1,10 @@
 package com.example.lab2.arena;
 
+import com.example.lab2.Utilities;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point3D;
 import javafx.scene.paint.Material;
+import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
@@ -73,5 +75,41 @@ public class Ball extends Sphere {
 			final double speedDotNormal = this.speed.dotProduct(normal);
 			this.speed = this.speed.subtract(normal.multiply(2.0 * speedDotNormal));
 		}
+	}
+	public void handleCoinCollision(final Box fence) {
+		final Bounds ballBounds = this.getBoundsInParent();
+		final double ballCenterX = ballBounds.getCenterX();
+		final double ballCenterZ = ballBounds.getCenterZ();
+		final double ballRadius = this.getRadius();
+		final Bounds fenceBounds = fence.getBoundsInParent();
+		final double fenceMinX = fenceBounds.getMinX();
+		final double fenceMaxX = fenceBounds.getMaxX();
+		final double fenceMinZ = fenceBounds.getMinZ();
+		final double fenceMaxZ = fenceBounds.getMaxZ();
+		final double closestX = Utilities.clamp(ballCenterX, fenceMinX, fenceMaxX);
+		final double closestZ = Utilities.clamp(ballCenterZ, fenceMinZ, fenceMaxZ);
+		final double dx = closestX - ballCenterX;
+		final double dz = closestZ - ballCenterZ;
+		final double distanceSquared = dx * dx + dz * dz;
+		final double radiusSquared = ballRadius * ballRadius;
+		final boolean collisionDetected = distanceSquared < radiusSquared;
+		if (collisionDetected) {
+			if (closestX == fenceMaxX || closestX == fenceMinX) {
+				this.speed = new Point3D(-this.speed.getX(), 0.0, this.speed.getZ());
+			}
+			else if (closestZ == fenceMaxZ || closestZ == fenceMinZ) {
+				this.speed = new Point3D(this.speed.getX(), 0.0, -this.speed.getZ());
+			}
+		}
+	}
+
+	public void reset() {
+		this.speed = new Point3D(0.0, 0.0, 0.0);
+	}
+
+	public boolean handleCoinCollision(final Cylinder coin) {
+		final Bounds ballBounds = this.getBoundsInParent();
+		final Bounds coinBounds = coin.getBoundsInParent();
+		return ballBounds.intersects(coinBounds);
 	}
 }

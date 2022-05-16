@@ -54,5 +54,10 @@ public class Arena extends Group
 	public double getZAngle() {
 		return this.rotateZ.getAngle();
 	}
+
+	public void reset() {
+		this.rotateX.setAngle(0.0);
+		this.rotateZ.setAngle(0.0);
+	}
 }
 
