@@ -59,12 +59,13 @@ public class Main extends Application {
 	private static final double HOLE_HEIGHT     = PODIUM_HEIGHT;
 	private static final double LIFE_RADIUS=5;
 
+
 	private Group root;
 	private Group hubGroup;
 	private Ball  ball;
 	private Arena arena;
 	private Hole hole;
-	private Scene scene;
+	private SubScene scene;
 	private PanAndZoomCamera camera;
 	private Camera birdViewCamera;
 	private Group reflector;
@@ -78,10 +79,17 @@ public class Main extends Application {
 	private Circle[] lives;
 	private Group hubRoot;
 	private Text pointsText;
-	OrientationMap orientationMap;
+	private OrientationMap orientationMap;
+	private Translate ballPosition;
+
+	private void addPoints(int numberOfPoints) {
+		this.points += numberOfPoints;
+		this.pointsText.setText(Integer.toString(this.points));
+	}
+
 	private SubScene createHUBDisplay() {
 		this.hubRoot = new Group();
-		final SubScene subScene = new SubScene(this.hubRoot, 800.0, 800.0);
+		SubScene subScene = new SubScene(this.hubRoot, 800.0, 800.0);
 		this.lives = new Circle[5];
 		for (int i = 0; i < this.lives.length; ++i) {
 			this.lives[i] = new Circle(Main.LIFE_RADIUS, Color.RED);
@@ -113,6 +121,32 @@ public class Main extends Application {
 		this.arena.getChildren().addAll(this.coins);
 
 	}
+	private boolean reset() {
+		int remainingLives = 0;
+		for (int i = 0; i < this.lives.length; ++i) {
+			if (this.lives[i] != null) {
+				++remainingLives;
+			}
+		}
+		if (remainingLives != 0) {
+			this.ballPosition.setX(-900.0);
+			this.ballPosition.setY(-55.0);
+			this.ballPosition.setZ(900.0);
+			this.hubRoot.getChildren().remove(this.lives[remainingLives - 1]);
+			this.lives[remainingLives - 1] = null;
+			this.ball.reset();
+			this.arena.reset();
+		}
+		else {
+			Text text = new Text("Kraj igre");
+			text.setFill(Color.RED);
+			text.setFont(new Font(26.0));
+			text.getTransforms().add(new Translate((800.0 - text.getLayoutBounds().getWidth()) / 2.0, (800.0 - text.getLayoutBounds().getHeight()) / 2.0));
+			this.hubRoot.getChildren().add(text);
+		}
+		return remainingLives == 0;
+	}
+
 	private void addReflector() {
 		this.reflector = new Group();
 		this.reflectorMaterial = new PhongMaterial(Color.GRAY);
@@ -143,7 +177,7 @@ public class Main extends Application {
 	public void start ( Stage stage ) throws IOException {
 		this.root = new Group ( );
 
-		scene = new Scene (
+		scene = new SubScene (
 				this.root,
 				Main.WINDOW_WIDTH,
 				Main.WINDOW_HEIGHT,
@@ -175,6 +209,7 @@ public class Main extends Application {
 				- ( Main.BALL_RADIUS + Main.PODIUM_HEIGHT / 2 ),
 				Main.PODIUM_DEPTH / 2 - 2 * Main.BALL_RADIUS
 		);
+		this.ballPosition = new Translate(-900.0, -55.0, 900.0);
 		(this.birdViewCamera = new PerspectiveCamera(true)).setFarClip(CAMERA_FAR_CLIP);
 		final Translate birdViewCameraPosition = new Translate(0.0, -2555.0, 0.0);
 		this.birdViewCamera.getTransforms().addAll(birdViewCameraPosition, ballPosition, new Rotate(-90.0, Rotate.X_AXIS));
@@ -211,41 +246,41 @@ public class Main extends Application {
 		Timer timer = new Timer (
 				deltaSeconds -> {
 					this.arena.update(ARENA_DAMP);
-					if (this.ball != null)
+					this.orientationMap.update(this.arena.getXAngle(), this.arena.getZAngle(), 30.0);
+					if (this.ball != null) {
 						Arrays.stream(this.obstacles).forEach(obstacle -> this.ball.handleObstacleCollision(obstacle));
-					if ( Main.this.ball != null ) {
-						boolean outOfArena = Main.this.ball.update (
-								deltaSeconds,
-								Main.PODIUM_DEPTH / 2,
-								-Main.PODIUM_DEPTH / 2,
-								-Main.PODIUM_WIDTH / 2,
-								Main.PODIUM_WIDTH / 2,
-								this.arena.getXAngle ( ),
-								this.arena.getZAngle ( ),
-								Main.MAX_ANGLE_OFFSET,
-								Main.MAX_ACCELERATION,
-								Main.DAMP
-						);
-						
-						boolean isInHole = this.hole.handleCollision ( this.ball );
-						Arrays.stream(this.fences).forEach(fence -> ball.handleCoinCollision(fence));
-						if ( outOfArena || isInHole ) {
-							this.arena.getChildren ( ).remove ( this.ball );
-							Main.this.ball = null;
+						for (int j= 0; j < this.coins.length; ++j) {
+							if (this.coins[j] != null && this.ball.handleCoinCollision(this.coins[j])) {
+								this.addPoints(5);
+								this.arena.getChildren().remove(this.coins[j]);
+								this.coins[j] = null;
+							}
+						}
+						Arrays.stream(this.fences).forEach(fence -> this.ball.handleCoinCollision(fence));
+						boolean outOfArena = this.ball.update(deltaSeconds, 1000.0, -1000.0, -1000.0, 1000.0, this.arena.getXAngle(), this.arena.getZAngle(), 30.0, 400.0, 0.999);
+						boolean isInHole = this.hole.handleCollision(this.ball);
+						if (isInHole) {
+							this.addPoints(5);
+						}
+						if ((outOfArena || isInHole) && this.reset()) {
+							this.arena.getChildren().remove(this.ball);
+							this.ball = null;
 						}
 					}
+					return;
 				}
-		);
+				);
 		timer.start ( );
 		Image image=new Image(this.getClass().getClassLoader().getResourceAsStream("backgrounds.jpg"));
 		ImagePattern imagePattern=new ImagePattern(image);
-		scene.setFill(imagePattern);
-		scene.addEventHandler ( KeyEvent.ANY, event -> this.arena.handleKeyEvent ( event, Main.MAX_ANGLE_OFFSET ) );
-		this.scene.addEventHandler(KeyEvent.ANY, this::handleKeyEvent);
-		scene.addEventHandler(MouseEvent.ANY, event-> this.camera.handleMouseEvent(event));
-		scene.addEventHandler(ScrollEvent.ANY, event->this.camera.handleScrollEvent(event));
+		Scene mainScene = new Scene(new Group(new Node[] { this.scene, this.createHUBDisplay() }), 800.0, 800.0, true, SceneAntialiasing.BALANCED);
+		mainScene.setFill(imagePattern);
+		mainScene.addEventHandler ( KeyEvent.ANY, event -> this.arena.handleKeyEvent ( event, Main.MAX_ANGLE_OFFSET ) );
+		mainScene.addEventHandler(KeyEvent.ANY, this::handleKeyEvent);
+		mainScene.addEventHandler(MouseEvent.ANY, event-> this.camera.handleMouseEvent(event));
+		mainScene.addEventHandler(ScrollEvent.ANY, event->this.camera.handleScrollEvent(event));
 		stage.setTitle ( "Rolling Ball" );
-		stage.setScene ( scene );
+		stage.setScene ( mainScene );
 		stage.show ( );
 	}
 	private void handleKeyEvent(KeyEvent event){
