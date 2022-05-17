@@ -7,6 +7,7 @@ import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
 
 public class Hole extends Cylinder {
+	private int points;
 	public Hole ( double radius, double height, Material material, Translate position ) {
 		super ( radius, height );
 		super.setMaterial ( material );
@@ -33,5 +34,10 @@ public class Hole extends Cylinder {
 		
 		return isInHole;
 	}
-	
+	public int getPoints(){
+		return this.points;
+	}
+	public void setPoints(int points){
+		this.points=points;
+	}
 }

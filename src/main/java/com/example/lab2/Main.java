@@ -59,12 +59,11 @@ public class Main extends Application {
 	private static final double HOLE_HEIGHT     = PODIUM_HEIGHT;
 	private static final double LIFE_RADIUS=5;
 
-
 	private Group root;
 	private Group hubGroup;
 	private Ball  ball;
 	private Arena arena;
-	private Hole hole;
+	private Hole hole, hole1,hole2,hole3;
 	private SubScene scene;
 	private PanAndZoomCamera camera;
 	private Camera birdViewCamera;
@@ -81,7 +80,7 @@ public class Main extends Application {
 	private Text pointsText;
 	private OrientationMap orientationMap;
 	private Translate ballPosition;
-
+	private int pomeraj;
 	private void addPoints(int numberOfPoints) {
 		this.points += numberOfPoints;
 		this.pointsText.setText(Integer.toString(this.points));
@@ -190,7 +189,15 @@ public class Main extends Application {
 				Main.PODIUM_HEIGHT,
 				Main.PODIUM_DEPTH
 		);
-		podium.setMaterial ( new PhongMaterial ( Color.BLUE ) );
+		Color c1;
+		switch (SuperMain.parameters[1]){
+			case "teren1":c1=Color.BLUE; pomeraj=0; break;
+			case "teren2":c1=Color.GREEN; pomeraj=150; break;
+			default:
+				c1=Color.CYAN; pomeraj=250;
+
+		}
+		podium.setMaterial ( new PhongMaterial ( c1 ) );
 		Rotate defaultCameraRotateX = new Rotate(-45.0, Rotate.X_AXIS);
 		Translate defaultCameraPosition = new Translate(0.0, 0.0, -5000.0);
 		camera = new PanAndZoomCamera(true,defaultCameraPosition,defaultCameraRotateX);
@@ -202,8 +209,14 @@ public class Main extends Application {
 
 		this.root.getChildren ( ).add ( camera );
 		scene.setCamera ( camera );
+		Color c;
+		switch (SuperMain.parameters[0]){
+			case "red": c=Color.RED; break;
+			case "black":c=Color.BLACK; break;
+			default: c=Color.GOLD;
+		}
 
-		Material ballMaterial = new PhongMaterial ( Color.RED );
+		Material ballMaterial = new PhongMaterial ( c );
 
 		this.ballPosition = new Translate(-900.0, -55.0, 900.0);
 		(this.birdViewCamera = new PerspectiveCamera(true)).setFarClip(CAMERA_FAR_CLIP);
@@ -217,13 +230,38 @@ public class Main extends Application {
 
 		Translate holePosition = new Translate ( x, -30, z );
 		Material holeMaterial = new PhongMaterial ( Color.YELLOW );
-
+		Material holeMaterial1 = new PhongMaterial ( Color.BLACK );
+		Translate holePosition1 = new Translate (-800+pomeraj, -30,z );
+		Translate holePosition2 = new Translate (800-pomeraj, -30,800 );
+		Translate holePosition3 = new Translate (0-pomeraj, -30,0 );
 		this.hole = new Hole (
 				Main.HOLE_RADIUS,
 				Main.HOLE_HEIGHT,
 				holeMaterial,
 				holePosition
 		);
+		hole.setPoints(5);
+		this.hole1 = new Hole (
+				Main.HOLE_RADIUS,
+				Main.HOLE_HEIGHT,
+				holeMaterial1,
+				holePosition1
+		);
+		this.hole2 = new Hole (
+				Main.HOLE_RADIUS,
+				Main.HOLE_HEIGHT,
+				holeMaterial1,
+				holePosition2
+		);
+		this.hole3 = new Hole (
+				Main.HOLE_RADIUS,
+				Main.HOLE_HEIGHT,
+				holeMaterial1,
+				holePosition3
+		);
+		hole1.setPoints(-5);
+		hole2.setPoints(-5);
+		hole3.setPoints(-5);
 		this.fences = new Box[4];
 		final PhongMaterial fenceMaterial = new PhongMaterial(Color.BROWN);
 		for (int i = 0; i < this.fences.length; ++i) {
@@ -233,7 +271,7 @@ public class Main extends Application {
 		this.arena = new Arena ( );
 		this.arena.getChildren ( ).add ( podium );
 		this.arena.getChildren ( ).add ( this.ball );
-		this.arena.getChildren ( ).addAll ( this.hole );
+		this.arena.getChildren ( ).addAll ( this. hole, this.hole1, this.hole2, this.hole3);
 		this.arena.getChildren().addAll(fences);
 		this.root.getChildren ( ).add ( this.arena );
 		addReflector();
@@ -255,10 +293,15 @@ public class Main extends Application {
 						Arrays.stream(this.fences).forEach(fence -> this.ball.handleCoinCollision(fence));
 						boolean outOfArena = this.ball.update(deltaSeconds, 1000.0, -1000.0, -1000.0, 1000.0, this.arena.getXAngle(), this.arena.getZAngle(), 30.0, 400.0, 0.999);
 						boolean isInHole = this.hole.handleCollision(this.ball);
+						boolean isInHole1 = this.hole1.handleCollision(this.ball);
+						boolean isInHole2 = this.hole2.handleCollision(this.ball);
+						boolean isInHole3 = this.hole3.handleCollision(this.ball);
 						if (isInHole) {
-							this.addPoints(5);
+							this.addPoints(hole.getPoints());
 						}
-						if ((outOfArena || isInHole) && this.reset()) {
+						if ((isInHole1||isInHole2||isInHole3))
+							this.addPoints(hole1.getPoints());
+						if ((outOfArena || isInHole || isInHole1||isInHole2||isInHole3) && this.reset()) {
 							this.arena.getChildren().remove(this.ball);
 							this.ball = null;
 						}
