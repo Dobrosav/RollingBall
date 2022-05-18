@@ -6,7 +6,6 @@ import com.example.lab2.arena.Hole;
 import com.example.lab2.camera.PanAndZoomCamera;
 import com.example.lab2.hub.OrientationMap;
 import com.example.lab2.timer.Timer;
-import com.example.lab2.timer.TimerSecond;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -45,17 +44,11 @@ public class Main extends Application {
 	private static final double PODIUM_DEPTH  = 2000;
 	
 	private static final double CAMERA_FAR_CLIP = 100000;
-	private static final double CAMERA_Z        = -5000;
-	private static final double CAMERA_X_ANGLE  = -45;
-	
+
 	private static final double BALL_RADIUS = 50;
-	
-	private static final double DAMP = 0.999;
-	
+
 	private static final double MAX_ANGLE_OFFSET = 30;
-	private static final double MAX_ACCELERATION = 400;
 	private static final double ARENA_DAMP=0.995;
-	private static final int    NUMBER_OF_HOLES = 4;
 	private static final double HOLE_RADIUS     = 2 * Main.BALL_RADIUS;
 	private static final double HOLE_HEIGHT     = PODIUM_HEIGHT;
 	private static final double LIFE_RADIUS=5;
@@ -82,6 +75,7 @@ public class Main extends Application {
 	private Text timertext;
 	private OrientationMap orientationMap;
 	private Translate ballPosition;
+	private Box setback, setback1;
 	private int pomeraj;
 	private double time=61;
 
@@ -212,10 +206,7 @@ public class Main extends Application {
 		Translate defaultCameraPosition = new Translate(0.0, 0.0, -5000.0);
 		camera = new PanAndZoomCamera(true,defaultCameraPosition,defaultCameraRotateX);
 		camera.setFarClip ( Main.CAMERA_FAR_CLIP );
-		/*camera.getTransforms ( ).addAll (
-				new Rotate ( Main.CAMERA_X_ANGLE, Rotate.X_AXIS ),
-				new Translate ( 0, 0, CAMERA_Z )
-		);*/
+
 
 		this.root.getChildren ( ).add ( camera );
 		scene.setCamera ( camera );
@@ -237,7 +228,6 @@ public class Main extends Application {
 
 		double x = ( Main.PODIUM_WIDTH / 2 - 2 * Main.HOLE_RADIUS );
 		double z = - ( Main.PODIUM_DEPTH / 2 - 2 * Main.HOLE_RADIUS );
-
 		Translate holePosition = new Translate ( x, -30, z );
 		Material holeMaterial = new PhongMaterial ( Color.YELLOW );
 		Material holeMaterial1 = new PhongMaterial ( Color.BLACK );
@@ -278,27 +268,36 @@ public class Main extends Application {
 			(this.fences[i] = new Box(10.0, 100.0, 1000.0)).setMaterial(fenceMaterial);
 			this.fences[i].getTransforms().addAll(new Rotate(i * 90.0, Rotate.Y_AXIS), new Translate(990.0, -55.0, 0.0));
 		}
+		int pomeraj2=0;
+		if (!SuperMain.parameters[1].equals("teren3"))
+			pomeraj2=pomeraj;
+		else pomeraj2=0;
+		setback=new Box(100,100,250);
+		setback.setLayoutX(-750+pomeraj2/2);
+		setback.setLayoutY(-55);
+		setback.getTransforms().addAll(new Rotate(90, Rotate.Y_AXIS));
+		setback.setMaterial(new PhongMaterial(Color.WHITE));
+
+		setback1=new Box(100,100,250);
+		setback1.setLayoutX(750- pomeraj2/2);
+		setback1.setLayoutY(-55);
+		setback1.getTransforms().addAll(new Rotate(90, Rotate.Y_AXIS));
+		setback1.setMaterial(new PhongMaterial(Color.WHITE));
+
 		this.arena = new Arena ( );
 		this.arena.getChildren ( ).add ( podium );
 		this.arena.getChildren ( ).add ( this.ball );
-		this.arena.getChildren ( ).addAll ( this. hole, this.hole1, this.hole2, this.hole3);
+		this.arena.getChildren ( ).addAll ( this. hole, this.hole1, this.hole2, this.hole3, setback, setback1);
 		this.arena.getChildren().addAll(fences);
 		this.root.getChildren ( ).add ( this.arena );
+		System.out.println(setback.getTranslateZ());
 		addReflector();
 		addObstacles();
 		addCoins();
-	/*	TimerSecond timerSecond=new TimerSecond(deltaSeconds -> {
-			time--;
-			System.out.println(time);
-			return;
-		}
-		);
-		timerSecond.start();
-*/
+
 		Timer timer = new Timer (
 				deltaSeconds -> {
-					System.out.println(time);
-					if (time>=0)
+					if (time>=0 && ball!=null)
 					time-=deltaSeconds;
 					timertext.setText(Integer.toString((int) time));
 					if(time<=0){
@@ -322,6 +321,8 @@ public class Main extends Application {
 								this.coins[j] = null;
 							}
 						}
+						this.ball.handleCoinCollision(setback);
+						this.ball.handleCoinCollision(setback1);
 						Arrays.stream(this.fences).forEach(fence -> this.ball.handleCoinCollision(fence));
 						boolean outOfArena = this.ball.update(deltaSeconds, 1000.0, -1000.0, -1000.0, 1000.0, this.arena.getXAngle(), this.arena.getZAngle(), 30.0, 400.0, 0.999);
 						boolean isInHole = this.hole.handleCollision(this.ball);
