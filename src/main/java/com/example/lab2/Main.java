@@ -6,6 +6,7 @@ import com.example.lab2.arena.Hole;
 import com.example.lab2.camera.PanAndZoomCamera;
 import com.example.lab2.hub.OrientationMap;
 import com.example.lab2.timer.Timer;
+import com.example.lab2.timer.TimerSecond;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -78,9 +79,12 @@ public class Main extends Application {
 	private Circle[] lives;
 	private Group hubRoot;
 	private Text pointsText;
+	private Text timertext;
 	private OrientationMap orientationMap;
 	private Translate ballPosition;
 	private int pomeraj;
+	private double time=61;
+
 	private void addPoints(int numberOfPoints) {
 		this.points += numberOfPoints;
 		this.pointsText.setText(Integer.toString(this.points));
@@ -102,6 +106,11 @@ public class Main extends Application {
 		this.orientationMap = new OrientationMap(160.0, 160.0);
 		this.orientationMap.getTransforms().addAll(new Translate(0.0, 640.0), new Translate(80.0, 80.0));
 		this.hubRoot.getChildren().add(this.orientationMap);
+
+		(this.timertext = new Text(Integer.toString((int) this.time))).setFill(Color.RED);
+		this.timertext.setFont(new Font(26.0));
+		this.timertext.getTransforms().add(new Translate(800.0 - 5.0 * this.timertext.getLayoutBounds().getWidth(), this.timertext.getLayoutBounds().getHeight()));
+		this.hubRoot.getChildren().add(this.timertext);
 		return subScene;
 	}
 
@@ -136,13 +145,14 @@ public class Main extends Application {
 			this.ball.reset();
 			this.arena.reset();
 		}
-		else {
+		else{
 			Text text = new Text("Kraj igre");
 			text.setFill(Color.RED);
 			text.setFont(new Font(26.0));
 			text.getTransforms().add(new Translate((800.0 - text.getLayoutBounds().getWidth()) / 2.0, (800.0 - text.getLayoutBounds().getHeight()) / 2.0));
 			this.hubRoot.getChildren().add(text);
 		}
+
 		return remainingLives == 0;
 	}
 
@@ -277,8 +287,30 @@ public class Main extends Application {
 		addReflector();
 		addObstacles();
 		addCoins();
+	/*	TimerSecond timerSecond=new TimerSecond(deltaSeconds -> {
+			time--;
+			System.out.println(time);
+			return;
+		}
+		);
+		timerSecond.start();
+*/
 		Timer timer = new Timer (
 				deltaSeconds -> {
+					System.out.println(time);
+					if (time>=0)
+					time-=deltaSeconds;
+					timertext.setText(Integer.toString((int) time));
+					if(time<=0){
+						Text text = new Text("Kraj igre");
+						text.setFill(Color.RED);
+						text.setFont(new Font(26.0));
+						text.getTransforms().add(new Translate((800.0 - text.getLayoutBounds().getWidth()) / 2.0, (800.0 - text.getLayoutBounds().getHeight()) / 2.0));
+						this.hubRoot.getChildren().add(text);
+						this.arena.getChildren().remove(this.ball);
+						this.ball=null;
+						return;
+					}
 					this.arena.update(ARENA_DAMP);
 					this.orientationMap.update(this.arena.getXAngle(), this.arena.getZAngle(), 30.0);
 					if (this.ball != null) {
@@ -296,6 +328,7 @@ public class Main extends Application {
 						boolean isInHole1 = this.hole1.handleCollision(this.ball);
 						boolean isInHole2 = this.hole2.handleCollision(this.ball);
 						boolean isInHole3 = this.hole3.handleCollision(this.ball);
+
 						if (isInHole) {
 							this.addPoints(hole.getPoints());
 						}
